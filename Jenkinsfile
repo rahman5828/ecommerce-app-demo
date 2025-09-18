@@ -3,6 +3,7 @@ pipeline {
 
     environment {
         DOCKER_HUB_REPO = "rahman5828/ecommerce-app"
+        VENV = ".venv"
     }
 
     stages {
@@ -14,14 +15,20 @@ pipeline {
 
         stage('Install Dependencies') {
             steps {
-                sh 'pip3 install --no-cache-dir -r requirements.txt'
+                sh '''
+                    python3 -m venv $VENV
+                    . $VENV/bin/activate
+                    pip install --no-cache-dir -r requirements.txt
+                '''
             }
         }
 
         stage('Run Tests') {
             steps {
-                // continue even if tests fail (for demo purposes)
-                sh 'pytest --maxfail=1 --disable-warnings -q || true'
+                sh '''
+                    . $VENV/bin/activate
+                    pytest --maxfail=1 --disable-warnings -q || true
+                '''
             }
         }
 
