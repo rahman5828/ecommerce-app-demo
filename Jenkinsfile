@@ -1,19 +1,26 @@
 pipeline {
-    agent { docker { image 'python:3.13-slim' } }
+    agent any
 
     environment {
         DOCKER_HUB_REPO = "rahman5828/ecommerce-app"
     }
 
     stages {
+        stage('Clone Repo') {
+            steps {
+                git branch: 'main', url: 'https://github.com/rahman5828/ecommerce-app-demo.git'
+            }
+        }
+
         stage('Install Dependencies') {
             steps {
-                sh 'pip install --no-cache-dir -r requirements.txt'
+                sh 'pip3 install --no-cache-dir -r requirements.txt'
             }
         }
 
         stage('Run Tests') {
             steps {
+                // continue even if tests fail (for demo purposes)
                 sh 'pytest --maxfail=1 --disable-warnings -q || true'
             }
         }
