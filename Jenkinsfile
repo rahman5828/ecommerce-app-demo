@@ -1,20 +1,14 @@
 pipeline {
-    agent any
+    agent { docker { image 'python:3.13-slim' } }
 
     environment {
         DOCKER_HUB_REPO = "rahman5828/ecommerce-app"
     }
 
     stages {
-        stage('Clone Repo') {
-            steps {
-                git branch: 'main', url: 'https://github.com/rahman5828/ecommerce-app-demo.git'
-            }
-        }
-
         stage('Install Dependencies') {
             steps {
-                sh 'pip install -r requirements.txt'
+                sh 'pip install --no-cache-dir -r requirements.txt'
             }
         }
 
@@ -33,8 +27,10 @@ pipeline {
         stage('Push to Docker Hub') {
             steps {
                 withCredentials([usernamePassword(credentialsId: 'docker-hub-creds', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-                    sh 'echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin'
-                    sh 'docker push $DOCKER_HUB_REPO:latest'
+                    sh """
+                        echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
+                        docker push $DOCKER_HUB_REPO:latest
+                    """
                 }
             }
         }
