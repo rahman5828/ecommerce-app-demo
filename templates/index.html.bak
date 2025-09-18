@@ -1,0 +1,12 @@
+<!doctype html>
+<html>
+<head><title>Mini E-commerce</title></head>
+<body>
+  <h1>Products</h1>
+  <ul>
+  {% for p in products %}
+    <li>{{ p.name }} — ${{ p.price }}</li>
+  {% endfor %}
+  </ul>
+</body>
+</html>
