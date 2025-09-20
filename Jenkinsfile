@@ -17,7 +17,9 @@ pipeline {
                 docker { image 'python:3.11-slim' }
             }
             steps {
-                sh 'pip install --no-cache-dir -r requirements.txt'
+                sh '''
+                  pip install --no-cache-dir -r requirements.txt
+                '''
             }
         }
 
@@ -26,22 +28,29 @@ pipeline {
                 docker { image 'python:3.11-slim' }
             }
             steps {
-                sh 'pytest --maxfail=1 --disable-warnings -q || true'
+                // `|| true` ensures pipeline continues even if tests fail
+                sh '''
+                  pytest --maxfail=1 --disable-warnings -q || true
+                '''
             }
         }
 
         stage('Build Docker Image') {
             steps {
-                sh 'docker build -t $DOCKER_HUB_REPO:latest .'
+                sh '''
+                  docker build -t $DOCKER_HUB_REPO:latest .
+                '''
             }
         }
 
         stage('Push to Docker Hub') {
             steps {
-                withCredentials([usernamePassword(credentialsId: 'docker-hub-creds', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                withCredentials([usernamePassword(credentialsId: 'docker-hub-creds',
+                                                  usernameVariable: 'DOCKER_USER',
+                                                  passwordVariable: 'DOCKER_PASS')]) {
                     sh '''
-                        echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
-                        docker push $DOCKER_HUB_REPO:latest
+                      echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
+                      docker push $DOCKER_HUB_REPO:latest
                     '''
                 }
             }
@@ -51,15 +60,24 @@ pipeline {
             steps {
                 sshagent(['azure-vm-ssh']) {
                     sh '''
-                        ssh -o StrictHostKeyChecking=no azureuser@172.190.253.33 '
-                          sudo docker pull rahman5828/ecommerce-app:latest &&
-                          sudo docker stop ecommerce-app || true &&
-                          sudo docker rm ecommerce-app || true &&
-                          sudo docker run -d -p 5000:5000 --name ecommerce-app rahman5828/ecommerce-app:latest
-                        '
+                      ssh -o StrictHostKeyChecking=no azureuser@172.190.253.33 '
+                        docker pull $DOCKER_HUB_REPO:latest &&
+                        docker stop ecommerce-app || true &&
+                        docker rm ecommerce-app || true &&
+                        docker run -d -p 5000:5000 --name ecommerce-app $DOCKER_HUB_REPO:latest
+                      '
                     '''
                 }
             }
+        }
+    }
+
+    post {
+        success {
+            echo "✅ Deployment successful!"
+        }
+        failure {
+            echo "❌ Pipeline failed. Check logs!"
         }
     }
 }
