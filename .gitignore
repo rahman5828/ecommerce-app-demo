@@ -1,4 +1,6 @@
+# ----------------------
 # Python
+# ----------------------
 __pycache__/
 *.pyc
 *.pyo
@@ -8,21 +10,33 @@ __pycache__/
 .venv/
 .env
 
+# ----------------------
 # Docker
+# ----------------------
 *.log
 *.pid
 *.sock
 
+# ----------------------
 # Terraform
+# ----------------------
 .terraform/
 *.tfstate
 *.tfstate.*
 crash.log
 
-# Azure credentials
+# ----------------------
+# Secrets & Credentials
+# ----------------------
 sp.json
+*.pem
+*.key
 
-# OS files
+# ----------------------
+# OS / Editor Files
+# ----------------------
 .DS_Store
 Thumbs.db
+.idea/
+.vscode/
 
