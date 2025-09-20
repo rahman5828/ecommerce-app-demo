@@ -59,14 +59,14 @@ pipeline {
         stage('Deploy to Azure VM') {
             steps {
                 sshagent(['azure-vm-ssh']) {
-                    sh '''
+                    sh """
                       ssh -o StrictHostKeyChecking=no azureuser@172.190.253.33 '
-                        docker pull $DOCKER_HUB_REPO:latest &&
+                        docker pull ${DOCKER_HUB_REPO}:latest &&
                         docker stop ecommerce-app || true &&
                         docker rm ecommerce-app || true &&
-                        docker run -d -p 5000:5000 --name ecommerce-app $DOCKER_HUB_REPO:latest
+                        docker run -d -p 5000:5000 --name ecommerce-app ${DOCKER_HUB_REPO}:latest
                       '
-                    '''
+                    """
                 }
             }
         }
