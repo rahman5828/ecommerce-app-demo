@@ -3,37 +3,44 @@ pipeline {
 
     environment {
         DOCKER_HUB_REPO = "rahman5828/ecommerce-app"
-        VM_HOST = "172.190.253.33"      // replace if VM IP changes
-        VM_USER = "azureuser"
     }
 
     stages {
-        stage('Clone Repo') {
+        stage('Checkout') {
             steps {
                 git branch: 'main', url: 'https://github.com/rahman5828/ecommerce-app-demo.git'
             }
         }
 
         stage('Install Dependencies') {
+            agent {
+                docker { image 'python:3.11-slim' }
+            }
             steps {
-                sh 'pip3 install --no-cache-dir -r requirements.txt'
+                sh 'pip install --no-cache-dir -r requirements.txt'
             }
         }
 
         stage('Run Tests') {
+            agent {
+                docker { image 'python:3.11-slim' }
+            }
             steps {
                 sh 'pytest --maxfail=1 --disable-warnings -q || true'
             }
         }
 
-        stage('Build & Push Docker Image') {
+        stage('Build Docker Image') {
             steps {
-                withCredentials([usernamePassword(credentialsId: 'docker-hub-creds',
-                                                  usernameVariable: 'DOCKER_USER',
-                                                  passwordVariable: 'DOCKER_PASS')]) {
+                sh 'docker build -t $DOCKER_HUB_REPO:latest .'
+            }
+        }
+
+        stage('Push to Docker Hub') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'docker-hub-creds', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
                     sh '''
-                        echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
-                        docker build -t $DOCKER_HUB_REPO:latest .
+                        echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
                         docker push $DOCKER_HUB_REPO:latest
                     '''
                 }
@@ -42,15 +49,13 @@ pipeline {
 
         stage('Deploy to Azure VM') {
             steps {
-                withCredentials([sshUserPrivateKey(credentialsId: 'azure-vm-ssh',
-                                                  keyFileVariable: 'SSH_KEY',
-                                                  usernameVariable: 'SSH_USER')]) {
+                sshagent(['azure-vm-ssh']) {
                     sh '''
-                        ssh -o StrictHostKeyChecking=no -i $SSH_KEY $SSH_USER@$VM_HOST '
-                            docker pull $DOCKER_HUB_REPO:latest &&
-                            docker stop ecommerce-app || true &&
-                            docker rm ecommerce-app || true &&
-                            docker run -d -p 5000:5000 --name ecommerce-app $DOCKER_HUB_REPO:latest
+                        ssh -o StrictHostKeyChecking=no azureuser@172.190.253.33 '
+                          sudo docker pull rahman5828/ecommerce-app:latest &&
+                          sudo docker stop ecommerce-app || true &&
+                          sudo docker rm ecommerce-app || true &&
+                          sudo docker run -d -p 5000:5000 --name ecommerce-app rahman5828/ecommerce-app:latest
                         '
                     '''
                 }
