@@ -43,7 +43,7 @@ pipeline {
 
         stage('Deploy to Azure VM') {
             steps {
-                sshagent(['azureuser']) {
+                sshagent(['azure-vm-ssh']) {
                     sh '''
                         ssh -o StrictHostKeyChecking=no azureuser@172.190.253.33 "
                             docker rm -f ecommerce-app || true &&
