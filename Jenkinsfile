@@ -8,8 +8,7 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                // Default SCM checkout
-                checkout scm
+                git branch: 'main', url: 'https://github.com/rahman5828/ecommerce-app-demo.git'
             }
         }
 
@@ -20,25 +19,20 @@ pipeline {
             steps {
                 sh '''
                   pip install --no-cache-dir -r requirements.txt
-                  pytest --maxfail=1 --disable-warnings -q || true
+                  pytest --maxfail=1 --disable-warnings -q
                 '''
             }
         }
 
-        stage('Build Docker Image') {
-            steps {
-                sh "docker build -t $DOCKER_HUB_REPO:latest ."
-            }
-        }
-
-        stage('Push to Docker Hub') {
+        stage('Build & Push Docker Image') {
             steps {
                 withCredentials([usernamePassword(credentialsId: 'docker-hub-creds',
                                                   usernameVariable: 'DOCKER_USER',
                                                   passwordVariable: 'DOCKER_PASS')]) {
                     sh '''
-                      echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
-                      docker push $DOCKER_HUB_REPO:latest
+                      echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
+                      docker buildx create --use || true
+                      docker buildx build --platform linux/amd64 -t $DOCKER_HUB_REPO:latest --push .
                     '''
                 }
             }
